@@ -1,8 +1,8 @@
 name: Check CRD Version Update
 on:
   pull_request:
-    branches:
-      - test-dev-2
+    paths:
+      - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
 
 jobs:
   check-version:
