@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
+
 jobs:
   check-version:
     runs-on: ubuntu-22.04
@@ -10,12 +11,16 @@ jobs:
       - name: Check for CRD changes and version update
         run: |
           if git diff --name-only HEAD^ | grep -q 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'; then
-            old_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
+            if git diff --name-only HEAD^ | grep -q 'pkg/k8s/apis/cilium.io/v1alpha1/register.go'; then
+              old_version=$(grep 'CustomResourceDefinitionSchemaVersion' tetragon/pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
+              new_version=$(grep 'CustomResourceDefinitionSchemaVersion' tetragon/pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
 
-            new_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
-
-            if [ "$old_version" == "$new_version" ]; then
-              echo "Error: CRD version not updated! Please update the CustomResourceDefinitionSchemaVersion in register.go"
+              if [ "$old_version" == "$new_version" ]; then
+                echo "Error: CRD version not updated! Please update the CustomResourceDefinitionSchemaVersion in register.go"
+                exit 1
+              fi
+            else
+              echo "Error: CRD files changed, but register.go not modified."
               exit 1
             fi
           else
