@@ -1,0 +1,2 @@
+pick which is the main folders 
+where is the kubernetes operator 

@@ -198,7 +198,7 @@ type policy struct {
 
 	// polMap is the (inner) policy map for this policy
 	polMap polMap
-}
+} 
 
 func (pol *policy) podMatches(podNs string, podLabels labels.Labels) bool {
 	if pol.namespace != "" && podNs != pol.namespace {
@@ -386,6 +386,7 @@ func (m *state) AddPolicy(polID PolicyID, namespace string, podLabelSelector *sl
 	}
 
 	podSelector, err := labels.SelectorFromLabelSelector(podLabelSelector)
+	// https://github.com/cilium/tetragon/issues/1854 you extract the namespace from here and add into policy
 	if err != nil {
 		return err
 	}
