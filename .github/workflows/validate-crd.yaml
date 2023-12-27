@@ -9,22 +9,32 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2 # you need this step to access the repository files
-      - id: file_changes # use the File Changes Action
-        uses: trilom/file-changes-action@v1.2.4
-        with:
-          output: ' ' # use space as the delimiter for output variables
-      - name: Check for CRD changes and version update
+      - name: Get changed files
+        id: get_changed_files
+        shell: pwsh # use PowerShell as the shell
         run: |
-          # use the modified files from the output variable
-          if git diff --name-only $ { { steps.file_changes.outputs.files_modified }} | grep -q 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'; then
-            old_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
+          # get the SHA of the base and head commits
+          $base = $env:GITHUB_BASE_REF
+          $head = $env:GITHUB_HEAD_REF
+          # get the list of changed files
+          $files = git diff --name-only $base $head
+          # filter the list by a regex pattern
+          $pattern = 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'
+          $filtered = $files -match $pattern
+          # set the output variable
+          if ($filtered) {
+            echo "::set-output name=crd_changed::true"
+          } else {
+            echo "::set-output name=crd_changed::false"
+          }
+      - name: Check for CRD changes and version update
+        if: steps.get_changed_files.outputs.crd_changed == 'true' # use the output variable as a condition
+        run: |
+          old_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
 
-            new_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
+          new_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
 
-            if [ "$old_version" == "$new_version" ]; then
-              echo "Error: CRD version not updated! Please update the CustomResourceDefinitionSchemaVersion in register.go"
-              exit 1
-            fi
-          else
-            echo "No changes in the CRD files"
+          if [ "$old_version" == "$new_version" ]; then
+            echo "Error: CRD version not updated! Please update the CustomResourceDefinitionSchemaVersion in register.go"
+            exit 1
           fi
