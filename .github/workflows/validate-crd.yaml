@@ -10,25 +10,26 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+          fetch-depth: 2  # Ensure enough history is fetched for comparisons
 
       - name: Get changed files
         id: changed-files
         run: |
-          if ${{ github.event_name == 'pull_request' }}; then
-              echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> $GITHUB_ENV
-          else
-              echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> $GITHUB_ENV
-          fi
+          changed_files=$(git diff --name-only HEAD^1 HEAD | xargs)
+          echo "changed_files=${changed_files}" >> $GITHUB_ENV
 
       - name: Check for CRD changes and version update
         run: |
           if echo "${{ env.changed_files }}" | grep -q 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'; then
-            old_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
+            # Get the old_version from test-dev branch
+            old_version=$(git show test-dev:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
 
             echo "Old Version: $old_version"
 
-            new_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
+            # Get the new_version from test-dev-2 branch
+            new_version=$(git show test-dev-2:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
+
+            echo "Old Version: $new_version"
 
             if [ "$old_version" == "$new_version" ]; then
               echo "Error: CRD version not updated! Please update the CustomResourceDefinitionSchemaVersion in register.go"
