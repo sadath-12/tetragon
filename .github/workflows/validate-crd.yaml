@@ -25,7 +25,7 @@ jobs:
         run: |
           if echo "${{ env.changed_files }}" | grep -q 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'; then
             new_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
-
+            echo "New CRD version: $new_version"
             if [ -z "$new_version" ]; then
               echo "Error: CRD version not found! Please ensure the CustomResourceDefinitionSchemaVersion exists in register.go"
               exit 1
