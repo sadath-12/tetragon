@@ -16,7 +16,7 @@ const (
 	// TPCRDName is the full name of the TracingPolicy CRD.
 	TPCRDName = TPKindDefinition + "/" + CRDVersion
 
-	CustomResourceDefinitionSchemaVersion = "0.10.8"
+	CustomResourceDefinitionSchemaVersion = "0.10.5"
 
 	// TPNamespacedCRDName is the full name of the TracingPolicy CRD.
 	TPNamespacedCRDName = TPNamespacedKindDefinition + "/" + CRDVersion
