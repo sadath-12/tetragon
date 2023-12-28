@@ -31,6 +31,7 @@ jobs:
 
             echo "old_version=$old_version"
             echo "new_version=$new_version"
+            echo "old_version=$old_version"
 
             if [ "$old_version" == "$new_version" ]; then
               echo "Error: CRD version not updated! Please update the CustomResourceDefinitionSchemaVersion in register.go"
