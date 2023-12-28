@@ -24,11 +24,17 @@ jobs:
       - name: Check for CRD changes and version update
         run: |
           if echo "${{ env.changed_files }}" | grep -q 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'; then
-            old_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
-            new_version=$(git show ${{ github.event.pull_request.base.sha }}:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
+            old_version=$(git show ${{ github.event.pull_request.base.sha }}:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
+            base=$(git show ${{ github.event.pull_request.base.sha }}:pkg/k8s/apis/cilium.io/v1alpha1/register.go )
+            new_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
 
             echo "old_version=$old_version"
             echo "new_version=$new_version"
+
+            echo "base=$base"
+
+            
+
 
             if [ "$old_version" == "$new_version" ]; then
               echo "Error: CRD version not updated! Please update the CustomResourceDefinitionSchemaVersion in register.go"
