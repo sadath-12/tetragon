@@ -35,5 +35,12 @@ what is those ebf maps
 understand where where different communications taking place , where is the role of cilium , through grpc whats its done 
 understand what are the different pkg/ and how they do
 
+there r some events that sends and get recieved --> from where does it happen ?
+the sensors add the events to the event channel monitoring via cilium and through different clients those events are read and from the events channel
+
+understand tetracli code properly
+
 February 22 - March 18 - GSOC
 mid-January - LFX
+
+how different clients are configured

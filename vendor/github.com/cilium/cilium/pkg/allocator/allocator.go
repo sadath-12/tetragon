@@ -404,7 +404,7 @@ func WithoutAutostart() AllocatorOption {
 // constructed.
 // Note: This channel is not owned by the allocator!
 func (a *Allocator) GetEvents() AllocatorEventSendChan {
-	return a.events
+	return a.events 
 }
 
 // Delete deletes an allocator and stops the garbage collector
