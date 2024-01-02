@@ -52,7 +52,7 @@ func NewProcessManager(
 		"enableProcessNs":   option.Config.EnableProcessNs,
 	}).Info("Starting process manager")
 	return pm, nil
-}
+} 
 
 // Notify implements Listener.Notify.
 func (pm *ProcessManager) Notify(event notify.Message) error {

@@ -44,3 +44,21 @@ February 22 - March 18 - GSOC
 mid-January - LFX
 
 how different clients are configured
+understand that processmanager
+
+
+understand these compos role in cilium -- 	ciliumClient,
+			v1.NewEndpoints(),
+			ipcache.New(),
+			fqdncache.New(),
+			servicecache.New(),
+
+decode their structs
+that events who is consuming just check from the eventschannel
+
+handleMonitorSocket( consumes monitor events via ciliumState --> see the role of ciliumState here and how after monitoring it stores those events
+
+
+pkg/watcher/crd/watcher.go will watch the crds and trigger
+
+how is tetragonExecute executed ?
