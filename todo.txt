@@ -30,3 +30,52 @@ jobs:
           else
             echo "No changes in the CRD files"
           fi
+
+
+name: Check CRD Version Update
+
+on:
+  pull_request:
+    paths:
+      - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+
+      - name: Get changed files
+        id: changed-files
+
+        run: |
+          if ${{ github.event_name == 'pull_request' }}; then
+              echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> $GITHUB_ENV
+          else
+              echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> $GITHUB_ENV
+          fi
+
+      - name: Check for CRD changes and version update
+        run: |
+          if echo "${{ env.changed_files }}" | grep -q 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'; then
+            old_version=$(git show ${{ github.event.pull_request.base.sha }}:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
+            echo "old_version=$old_version"
+            new_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
+
+            if [ -z "$old_version" ]; then
+              echo "Error: Unable to retrieve old version from the base branch."
+              exit 1
+            fi
+
+            echo "old_version=$old_version"
+            echo "new_version=$new_version"
+
+            if [ "$old_version" == "$new_version" ]; then
+              echo "Error: CRD version not updated! Please update the CustomResourceDefinitionSchemaVersion in register.go"
+              exit 1
+            fi
+          else
+            echo "No changes in the CRD files"
+          fi
