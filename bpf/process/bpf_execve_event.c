@@ -144,6 +144,23 @@ read_execve_shared_info(void *ctx, __u64 pid)
 	return secureexec;
 }
 
+#ifdef __LARGE_BPF_PROG
+static inline __attribute__((always_inline)) __u32
+read_exe(struct task_struct *task, struct heap_exe *exe)
+{
+	struct file *file = BPF_CORE_READ(task, mm, exe_file);
+	struct path *path = __builtin_preserve_access_index(&file->f_path);
+
+	exe->len = BINARY_PATH_MAX_LEN;
+	exe->off = (char *)&exe->buf;
+	exe->off = __d_path_local(path, exe->off, (int *)&exe->len, (int *)&exe->error);
+	if (exe->len > 0)
+		exe->len = BINARY_PATH_MAX_LEN - exe->len;
+
+	return exe->len;
+}
+#endif
+
 __attribute__((section("tracepoint/sys_execve"), used)) int
 event_execve(struct sched_execve_args *ctx)
 {
@@ -183,6 +200,14 @@ event_execve(struct sched_execve_args *ctx)
 	p->size = offsetof(struct msg_process, args);
 	p->auid = get_auid();
 	p->uid = get_current_uid_gid();
+
+	// Reading the absolute path of the process exe for matchBinaries.
+	// Historically we used the filename, a potentially relative path (maybe to
+	// a symlink) coming from the execve tracepoint. For kernels not supporting
+	// large BPF prog, we still use the filename.
+#ifdef __LARGE_BPF_PROG
+	read_exe(task, &event->exe);
+#endif
 
 	p->size += read_path(ctx, event, filename);
 	p->size += read_args(ctx, event);
@@ -265,6 +290,14 @@ execve_send(struct sched_execve_args *ctx)
 		// buffer can be written at clone stage with parent's info, if previous
 		// path is longer than current, we can have leftovers at the end.
 		memset(&curr->bin, 0, sizeof(curr->bin));
+#ifdef __LARGE_BPF_PROG
+		// read from proc exe stored at execve time
+		if (event->exe.len <= BINARY_PATH_MAX_LEN) {
+			curr->bin.path_length = probe_read(curr->bin.path, event->exe.len, event->exe.off);
+			if (curr->bin.path_length == 0)
+				curr->bin.path_length = event->exe.len;
+		}
+#else
 		// reuse p->args first string that contains the filename, this can't be
 		// above 256 in size (otherwise the complete will be send via data msg)
 		// which is okay because we need the 256 first bytes.
@@ -273,6 +306,7 @@ execve_send(struct sched_execve_args *ctx)
 			// don't include the NULL byte in the length
 			curr->bin.path_length--;
 		}
+#endif
 	}
 
 	event->common.flags = 0;

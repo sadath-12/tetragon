@@ -811,9 +811,10 @@ This action allows you to specify parameters for the `Post` action.
 `Post` takes the `rateLimit` parameter with a time value. This value defaults
 to seconds, but post-fixing 'm' or 'h' will cause the value to be interpreted
 in minutes or hours. When this parameter is specified for an action, that
-action will check if the same action has fired within the time window, with the
-same inspected arguments. (Only the first 16 bytes of each inspected argument
-is used in the matching. Only supported on kernels v5.3 onwards.)
+action will check if the same action has fired, for the same thread, within
+the time window, with the same inspected arguments. (Only the first 40 bytes
+of each inspected argument is used in the matching. Only supported on kernels
+v5.3 onwards.)
 
 For example, you can specify a selector to only generate an event every 5
 minutes with adding the following action and its paramater:
@@ -823,6 +824,11 @@ matchActions:
 - action: Post
   rateLimit: 5m
 ```
+
+By default, the rate limiting is applied per thread, meaning that only repeated
+actions by the same thread will be rate limited. This can be expanded to all
+threads for a process by specifying a rateLimitScope with value "process"; or
+can be expanded to all processes by specifying the same with the value "global".
 
 #### Stack traces
 

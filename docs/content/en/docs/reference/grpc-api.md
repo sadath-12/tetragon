@@ -66,6 +66,18 @@ version 1 of this API is defined in
 | CAP_BPF | 39 | CAP_BPF allows the following BPF operations: - Creating all types of BPF maps - Advanced verifier features - Indirect variable access - Bounded loops - BPF to BPF function calls - Scalar precision tracking - Larger complexity limits - Dead code elimination - And potentially other features - Loading BPF Type Format (BTF) data - Retrieve xlated and JITed code of BPF programs - Use bpf_spin_lock() helper CAP_PERFMON relaxes the verifier checks further: - BPF progs can use of pointer-to-integer conversions - speculation attack hardening measures are bypassed - bpf_probe_read to read arbitrary kernel memory is allowed - bpf_trace_printk to print kernel memory is allowed CAP_SYS_ADMIN is required to use bpf_probe_write_user. CAP_SYS_ADMIN is required to iterate system wide loaded programs, maps, links, BTFs and convert their IDs to file descriptors. CAP_PERFMON and CAP_BPF are required to load tracing programs. CAP_NET_ADMIN and CAP_BPF are required to load networking programs. |
 | CAP_CHECKPOINT_RESTORE | 40 | Allow writing to ns_last_pid |
 
+<a name="tetragon-ProcessPrivilegesChanged"></a>
+
+### ProcessPrivilegesChanged
+Reasons of why the process privileges changed.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| PRIVILEGES_CHANGED_UNSET | 0 |  |
+| PRIVILEGES_RAISED_EXEC_FILE_CAP | 1 | A privilege elevation happened due to the execution of a binary with file capability sets. The kernel supports associating capability sets with an executable file using `setcap` command. The file capability sets are stored in an extended attribute (see https://man7.org/linux/man-pages/man7/xattr.7.html) named `security.capability`. The file capability sets, in conjunction with the capability sets of the process, determine the process capabilities and privileges after the `execve` system call. For further reference, please check sections `File capability extended attribute versioning` and `Namespaced file capabilities` of the capabilities man pages: https://man7.org/linux/man-pages/man7/capabilities.7.html. The new granted capabilities can be listed inside the `process` object. |
+| PRIVILEGES_RAISED_EXEC_FILE_SETUID | 2 | A privilege elevation happened due to the execution of a binary with set-user-ID to root. When a process with nonzero UIDs executes a binary with a set-user-ID to root also known as suid-root executable, then the kernel switches the effective user ID to 0 (root) which is a privilege elevation operation since it grants access to resources owned by the root user. The effective user ID is listed inside the `process_credentials` part of the `process` object. For further reading, section `Capabilities and execution of programs by root` of https://man7.org/linux/man-pages/man7/capabilities.7.html. Afterward the kernel recalculates the capability sets of the process and grants all capabilities in the permitted and effective capability sets, except those masked out by the capability bounding set. If the binary also have file capability sets then these bits are honored and the process gains just the capabilities granted by the file capability sets (i.e., not all capabilities, as it would occur when executing a set-user-ID to root binary that does not have any associated file capabilities). This is described in section `Set-user-ID-root programs that have file capabilities` of https://man7.org/linux/man-pages/man7/capabilities.7.html. The new granted capabilities can be listed inside the `process` object. There is one exception for the special treatments of set-user-ID to root execution receiving all capabilities, if the `SecBitNoRoot` bit of the Secure bits is set, then the kernel does not grant any capability. Please check section: `The securebits flags: establishing a capabilities-only environment` of the capabilities man pages: https://man7.org/linux/man-pages/man7/capabilities.7.html |
+| PRIVILEGES_RAISED_EXEC_FILE_SETGID | 3 | A privilege elevation happened due to the execution of a binary with set-group-ID to root. When a process with nonzero GIDs executes a binary with a set-group-ID to root, the kernel switches the effective group ID to 0 (root) which is a privilege elevation operation since it grants access to resources owned by the root group. The effective group ID is listed inside the `process_credentials` part of the `process` object. |
+
 <a name="tetragon-SecureBitsType"></a>
 
 ### SecureBitsType
@@ -94,6 +106,7 @@ version 1 of this API is defined in
 | ----- | ---- | ----- | ----------- |
 | setuid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then this is the set user ID used for execution |
 | setgid | [google.protobuf.UInt32Value](#google-protobuf-UInt32Value) |  | If set then this is the set group ID used for execution |
+| privileges_changed | [ProcessPrivilegesChanged](#tetragon-ProcessPrivilegesChanged) | repeated | The reasons why this binary execution changed privileges. Usually this happens when the process executes a binary with the set-user-ID to root or file capability sets. The final granted privileges can be listed inside the `process_credentials` or capabilities fields part of of the `process` object. |
 
 <a name="tetragon-Capabilities"></a>
 
@@ -472,6 +485,7 @@ https://github.com/opencontainers/runtime-spec/blob/main/config.md#createcontain
 | stack_trace | [StackTraceEntry](#tetragon-StackTraceEntry) | repeated | Kernel stack trace to the call. |
 | policy_name | [string](#string) |  | Name of the Tracing Policy that created that kprobe. |
 | return_action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the return kprobe executed. |
+| message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
 
 <a name="tetragon-ProcessLoader"></a>
 
@@ -497,6 +511,7 @@ loader sensor event triggered for loaded binary/library
 | args | [KprobeArgument](#tetragon-KprobeArgument) | repeated | Arguments definition of the observed tracepoint. TODO: once we implement all we want, rename KprobeArgument to GenericArgument |
 | policy_name | [string](#string) |  | Name of the policy that created that tracepoint. |
 | action | [KprobeAction](#tetragon-KprobeAction) |  | Action performed when the tracepoint matched. |
+| message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
 
 <a name="tetragon-ProcessUprobe"></a>
 
@@ -509,6 +524,7 @@ loader sensor event triggered for loaded binary/library
 | path | [string](#string) |  |  |
 | symbol | [string](#string) |  |  |
 | policy_name | [string](#string) |  | Name of the policy that created that uprobe. |
+| message | [string](#string) |  | Short message of the Tracing Policy to inform users what is going on. |
 
 <a name="tetragon-RuntimeHookRequest"></a>
 
@@ -662,6 +678,7 @@ AggregationOptions defines configuration options for aggregating events.
 | pod_regex | [string](#string) | repeated | Filter by process.pod.name field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 | arguments_regex | [string](#string) | repeated | Filter by process.arguments field using RE2 regular expression syntax: https://github.com/google/re2/wiki/Syntax |
 | labels | [string](#string) | repeated | Filter events by pod labels using Kubernetes label selector syntax: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors Note that this filter never matches events without the pod field (i.e. host process events). |
+| policy_names | [string](#string) | repeated | Filter events by tracing policy names |
 
 <a name="tetragon-GetEventsRequest"></a>
 
@@ -723,7 +740,7 @@ GetEventsResponse event oneof.
 <a name="tetragon-FieldFilterAction"></a>
 
 ### FieldFilterAction
-Determins the behaviour of a field filter
+Determines the behavior of a field filter
 
 | Name | Number | Description |
 | ---- | ------ | ----------- |
@@ -976,4 +993,3 @@ Determins the behaviour of a field filter
 | <a name="bool" /> bool |  | bool | boolean | boolean | bool | bool | boolean | TrueClass/FalseClass |
 | <a name="string" /> string | A string must always contain UTF-8 encoded or 7-bit ASCII text. | string | String | str/unicode | string | string | string | String (UTF-8) |
 | <a name="bytes" /> bytes | May contain any arbitrary sequence of bytes. | string | ByteString | str | []byte | ByteString | string | String (ASCII-8BIT) |
-

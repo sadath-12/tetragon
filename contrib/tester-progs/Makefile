@@ -18,7 +18,8 @@ PROGS = sigkill-tester \
 	threads-tester \
 	bench-reader \
 	threads-exit \
-	killer-tester
+	killer-tester \
+	drop-privileges
 
 # For now killer-tester is compiled to 32-bit only on x86_64 as we want
 # to test 32-bit binaries and system calls compatibility layer.
@@ -52,6 +53,9 @@ sigkill-unprivileged-user-ns-tester: sigkill-unprivileged-user-ns-tester.c
 nop: nop.c
 	$(GCC) -Wall $< -o $@ -lpthread
 
+drop-privileges: drop-privileges.c
+	$(GCC) -Wall $< -o $@ -lpthread
+
 exit-leader: exit-leader.c
 	$(GCC) -Wall $< -o $@ -lpthread
 
@@ -68,8 +72,9 @@ uprobe-test-2: uprobe-test-1
 	cp uprobe-test-1 uprobe-test-2
 
 # -m32 is an x86_64 flag.
+# NB(kkourt) we compile this as static to avoid the need for ia32 libs in VMs
 killer-tester-32: killer-tester.c
-	$(GCC) -Wall -m32 $< -o $@
+	$(GCC) -Wall -m32 -static $< -o $@
 
 lseek-pipe: FORCE
 	go build -o lseek-pipe ./go/lseek-pipe

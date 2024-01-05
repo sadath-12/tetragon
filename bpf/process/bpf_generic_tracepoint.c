@@ -125,9 +125,6 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 	if (!config)
 		return 0;
 
-	if (!generic_process_filter_binary(config))
-		return 0;
-
 	/* check policy filter */
 	if (!policy_filter_check(config->policy_id))
 		return 0;
@@ -181,7 +178,8 @@ generic_tracepoint_event(struct generic_tracepoint_event_arg *ctx)
 
 	msg->common.op = MSG_OP_GENERIC_TRACEPOINT;
 	msg->sel.curr = 0;
-	msg->filter_tailcall_index = 0;
+	msg->tailcall_index_process = 0;
+	msg->tailcall_index_selector = 0;
 #pragma unroll
 	for (i = 0; i < MAX_CONFIGURED_SELECTORS; i++)
 		msg->sel.active[i] = 0;

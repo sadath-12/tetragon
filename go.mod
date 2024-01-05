@@ -12,7 +12,7 @@ require (
 	github.com/cilium/tetragon/api v0.0.0-00010101000000-000000000000
 	github.com/cilium/tetragon/pkg/k8s v0.0.0-00010101000000-000000000000
 	github.com/containerd/cgroups v1.1.0
-	github.com/containerd/containerd v1.7.11
+	github.com/containerd/containerd v1.7.12
 	github.com/fatih/color v1.16.0
 	github.com/go-openapi/strfmt v0.22.0
 	github.com/gogo/protobuf v1.3.2
@@ -29,7 +29,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.1.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.17.0
+	github.com/prometheus/client_golang v1.18.0
 	github.com/prometheus/client_model v0.5.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
@@ -40,8 +40,8 @@ require (
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20231127184239-0ced8385386a
 	go.uber.org/atomic v1.11.0
 	go.uber.org/multierr v1.11.0
-	golang.org/x/sync v0.5.0
-	golang.org/x/sys v0.15.0
+	golang.org/x/sync v0.6.0
+	golang.org/x/sys v0.16.0
 	golang.org/x/time v0.5.0
 	google.golang.org/grpc v1.60.1
 	google.golang.org/protobuf v1.32.0
@@ -60,6 +60,7 @@ require (
 )
 
 require (
+	dario.cat/mergo v1.0.0 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230512164433-5d1fd1a340c9 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect

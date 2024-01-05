@@ -25,6 +25,7 @@ import (
 	"github.com/cilium/tetragon/pkg/kernels"
 	"github.com/cilium/tetragon/pkg/logger"
 	lc "github.com/cilium/tetragon/pkg/matchers/listmatcher"
+	sm "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	smatcher "github.com/cilium/tetragon/pkg/matchers/stringmatcher"
 	"github.com/cilium/tetragon/pkg/observer/observertesthelper"
 	"github.com/cilium/tetragon/pkg/policyfilter"
@@ -443,7 +444,7 @@ func TestLoadTracepointSensor(t *testing.T) {
 		tus.SensorMap{Name: "tcpmon_map", Progs: []uint{5}},
 
 		// all kprobe but generic_tracepoint_filter
-		tus.SensorMap{Name: "config_map", Progs: []uint{0, 1, 2}},
+		tus.SensorMap{Name: "config_map", Progs: []uint{0, 2}},
 
 		// generic_tracepoint_event
 		tus.SensorMap{Name: "tg_conf_map", Progs: []uint{0}},
@@ -451,10 +452,10 @@ func TestLoadTracepointSensor(t *testing.T) {
 
 	if kernels.EnableLargeProgs() {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 3, 4, 5}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3, 4, 5}})
 	} else {
 		// shared with base sensor
-		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{0, 1, 3}})
+		sensorMaps = append(sensorMaps, tus.SensorMap{Name: "execve_map", Progs: []uint{3}})
 	}
 
 	readHook := `
@@ -610,6 +611,7 @@ spec:
   tracepoints:
   - subsystem: "syscalls"
     event: "sys_enter_lseek"
+    message: "System call lseek tracepoint test"
     # args: add both the syscall id, and the array with the arguments
     args:
     # fd argument
@@ -673,6 +675,7 @@ spec:
 	child1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(smatcher.Full("syscalls")).
 		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithMessage(sm.Full("System call lseek tracepoint test")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(
@@ -688,6 +691,7 @@ spec:
 	thread1TpChecker := ec.NewProcessTracepointChecker("").
 		WithSubsys(smatcher.Full("syscalls")).
 		WithEvent(smatcher.Full("sys_enter_lseek")).
+		WithMessage(sm.Full("System call lseek tracepoint test")).
 		WithArgs(ec.NewKprobeArgumentListMatcher().
 			WithOperator(lc.Ordered).
 			WithValues(

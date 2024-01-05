@@ -123,8 +123,6 @@ struct selector_arg_filters {
 	__u32 argoff[5];
 } __attribute__((packed));
 
-#define FLAGS_EARLY_FILTER BIT(0)
-
 #define IS_32BIT 0x80000000
 
 struct event_config {
@@ -1596,17 +1594,8 @@ static inline __attribute__((always_inline)) int match_binaries(__u32 selidx)
 }
 
 static inline __attribute__((always_inline)) int
-generic_process_filter_binary(struct event_config *config)
-{
-	/* single flag bit at the moment (FLAGS_EARLY_FILTER) */
-	if (config->flags & FLAGS_EARLY_FILTER)
-		return match_binaries(0);
-	return 1;
-}
-
-static inline __attribute__((always_inline)) int
 selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
-		    bool early_binary_filter, bool is_entry)
+		    bool is_entry)
 {
 	struct selector_arg_filters *filters;
 	struct selector_arg_filter *filter;
@@ -1635,10 +1624,6 @@ selector_arg_offset(__u8 *f, struct msg_generic_kprobe *e, __u32 selidx,
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
 		/* skip the matchCapabilityChanges by reading its length */
 		seloff += *(__u32 *)((__u64)f + (seloff & INDEX_MASK));
-
-		// check for match binary actions
-		if (!early_binary_filter && !match_binaries(selidx))
-			return 0;
 	}
 
 	/* Making binary selectors fixes size helps on some kernels */
@@ -1723,8 +1708,8 @@ static inline __attribute__((always_inline)) int filter_args_reject(u64 id)
 }
 
 static inline __attribute__((always_inline)) int
-filter_args(struct msg_generic_kprobe *e, int index, void *filter_map,
-	    bool early_binary_filter, bool is_entry)
+filter_args(struct msg_generic_kprobe *e, int selidx, void *filter_map,
+	    bool is_entry)
 {
 	__u8 *f;
 
@@ -1742,11 +1727,11 @@ filter_args(struct msg_generic_kprobe *e, int index, void *filter_map,
 	 * events early. Now we need to ensure that active pid sselectors
 	 * have their arg filters run.
 	 */
-	if (index > SELECTORS_ACTIVE)
+	if (selidx > SELECTORS_ACTIVE)
 		return filter_args_reject(e->func_id);
 
-	if (e->sel.active[index]) {
-		int pass = selector_arg_offset(f, e, index, early_binary_filter, is_entry);
+	if (e->sel.active[selidx]) {
+		int pass = selector_arg_offset(f, e, selidx, is_entry);
 		if (pass)
 			return pass;
 	}
@@ -1880,9 +1865,13 @@ do_action_signal(int signal)
  */
 #define KEY_BYTES_PER_ARG 40
 
+/* Rate limit scope. */
+#define ACTION_RATE_LIMIT_SCOPE_THREAD	0
+#define ACTION_RATE_LIMIT_SCOPE_PROCESS 1
+#define ACTION_RATE_LIMIT_SCOPE_GLOBAL	2
+
 struct ratelimit_key {
 	__u64 func_id;
-	__u64 retprobe_id;
 	__u64 action;
 	__u64 tid;
 	__u8 data[MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG];
@@ -1919,7 +1908,7 @@ struct {
 
 #ifdef __LARGE_BPF_PROG
 static inline __attribute__((always_inline)) bool
-rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
+rate_limit(__u64 ratelimit_interval, __u64 ratelimit_scope, struct msg_generic_kprobe *e)
 {
 	__u64 curr_time = ktime_get_ns();
 	__u64 *last_repeat_entry;
@@ -1941,9 +1930,20 @@ rate_limit(__u64 ratelimit_interval, struct msg_generic_kprobe *e)
 	ro_heap = map_lookup_elem(&ratelimit_ro_heap, &zero);
 
 	key->func_id = e->func_id;
-	key->retprobe_id = e->retprobe_id;
 	key->action = e->action;
-	key->tid = e->tid;
+	switch (ratelimit_scope) {
+	case ACTION_RATE_LIMIT_SCOPE_THREAD:
+		key->tid = e->tid;
+		break;
+	case ACTION_RATE_LIMIT_SCOPE_PROCESS:
+		key->tid = e->current.pid;
+		break;
+	case ACTION_RATE_LIMIT_SCOPE_GLOBAL:
+		key->tid = 0;
+		break;
+	default:
+		return false;
+	}
 
 	// Clean the heap
 	probe_read(key->data, MAX_POSSIBLE_ARGS * KEY_BYTES_PER_ARG, ro_heap);
@@ -2108,8 +2108,9 @@ do_action(void *ctx, __u32 i, struct msg_generic_kprobe *e,
 		break;
 	case ACTION_POST: {
 		__u64 ratelimit_interval __maybe_unused = actions->act[++i];
+		__u64 ratelimit_scope __maybe_unused = actions->act[++i];
 #ifdef __LARGE_BPF_PROG
-		if (rate_limit(ratelimit_interval, e))
+		if (rate_limit(ratelimit_interval, ratelimit_scope, e))
 			*post = false;
 #endif /* __LARGE_BPF_PROG */
 		__u32 stack_trace = actions->act[++i];
@@ -2220,22 +2221,17 @@ filter_read_arg(void *ctx, struct bpf_map_def *heap,
 		struct bpf_map_def *config_map, bool is_entry)
 {
 	struct msg_generic_kprobe *e;
-	struct event_config *config;
-	int index, pass, zero = 0;
+	int selidx, pass, zero = 0;
 
 	e = map_lookup_elem(heap, &zero);
 	if (!e)
 		return 0;
-	config = map_lookup_elem(config_map, &e->idx);
-	if (!config)
-		return 0;
-	index = e->filter_tailcall_index;
-	pass = filter_args(e, index & MAX_SELECTORS_MASK, filter,
-			   config->flags & FLAGS_EARLY_FILTER, is_entry);
+	selidx = e->tailcall_index_selector;
+	pass = filter_args(e, selidx & MAX_SELECTORS_MASK, filter, is_entry);
 	if (!pass) {
-		index++;
-		if (index <= MAX_SELECTORS && e->sel.active[index & MAX_SELECTORS_MASK]) {
-			e->filter_tailcall_index = index;
+		selidx++;
+		if (selidx <= MAX_SELECTORS && e->sel.active[selidx & MAX_SELECTORS_MASK]) {
+			e->tailcall_index_selector = selidx;
 			tail_call(ctx, tailcalls, TAIL_CALL_ARGS);
 		}
 		// reject if we did not attempt to tailcall, or if tailcall failed.
