@@ -21,11 +21,13 @@ jobs:
         run: |
           for changed_file in ${{ steps.changed-files.outputs.all }}; do
             if echo "$changed_file" | grep -q 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'; then
+            echo "crd_changed=true"
               if [[ "$changed_file" == *"register.go" ]]; then
                 # Logic to extract and compare version numbers
                 old_version=$(git show ${{ github.event.pull_request.base.sha }}:$changed_file | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
                 new_version=$(grep 'CustomResourceDefinitionSchemaVersion' $changed_file | awk -F'"' '{print $2}')
-
+                echo "old_version=$old_version"
+                echo "new_version=$new_version"
                 if [ "$old_version" == "$new_version" ]; then
                   echo "Error: CRD version not updated in $changed_file! Please update the CustomResourceDefinitionSchemaVersion."
                   exit 1
