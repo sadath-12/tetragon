@@ -158,9 +158,24 @@ spec:
 ```
 ## Uprobes
 
-{{% pageinfo %}}
-This hook point method lacks documentation, see [issue #878](https://github.com/cilium/tetragon/issues/878).
-{{% /pageinfo %}}
+## Uprobes
+
+Uprobes are similar to kprobes, but they allow you to dynamically hook into any user-space function and execute BPF code. Uprobes are also tied to the binary version of the user-space program, so they may not be portable across different versions or architectures.
+
+To use uprobes, you need to specify the path to the executable or library file, and the symbol of the function you want to probe. You can use tools like objdump, nm, or readelf to find the symbol of a function in a binary file. Alternatively, you can use the perf tool to list the available uprobes for a running process.
+
+You can define multiple uprobes in the same policy, or in different policies. You can also combine uprobes with kprobes and tracepoints to get a comprehensive view of the system behavior.
+
+Here is an example of a policy that defines an uprobe for the readline function in the bash executable, and applies it to all processes that use the bash binary:
+
+```yaml
+spec:
+  uprobes:
+  - path: "/bin/bash"
+    symbol: "readline"
+```
+
+This example shows how to use uprobes to capture the user input command line string from all bash shells. The readline function is a library function that reads a line from the standard input and returns it as a string. By hooking into this function, we can monitor the commands entered by the users.
 
 ## Arguments
 
