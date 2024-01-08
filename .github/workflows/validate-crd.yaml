@@ -19,11 +19,12 @@ jobs:
 
       - name: Check for CRD changes and version update
         run: |
-          crd_changed=false
-          version_changed=false
+
+          crd_changed=0
+          version_changed=0
           for changed_file in ${{ steps.changed-files.outputs.all }}; do
             if echo "$changed_file" | grep -q 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'; then
-              crd_changed=true
+              crd_changed=1
             fi
 
             if echo "$changed_file" | grep -q 'pkg/k8s/apis/cilium.io/v1alpha1/register.go'; then
@@ -32,17 +33,17 @@ jobs:
               echo "old_version=$old_version"
               echo "new_version=$new_version"
               if [ "$old_version" != "$new_version" ]; then
-                version_changed=true
+                version_changed=1
               fi
             fi
           done
 
-          if [ "$crd_changed" = true ] && [ "$version_changed" = false ]; then
+          if [ "$crd_changed" -eq 1 ] && [ "$version_changed" -eq 0 ]; then
             echo "CRD changed but version not updated"
             exit 1
           fi
 
-          if [ "$crd_changed" = false ] && [ "$version_changed" = true ]; then
+          if [ "$crd_changed" -eq 0 ] && [ "$version_changed" -eq 1 ]; then
             echo "Version updated but CRD not changed"
             exit 1
           fi
