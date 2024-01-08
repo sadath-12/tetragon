@@ -29,7 +29,7 @@ jobs:
             new_version=$(grep 'CustomResourceDefinitionSchemaVersion' pkg/k8s/apis/cilium.io/v1alpha1/register.go | awk -F'"' '{print $2}')
 
             if [ -z "$old_version" ]; then
-              echo "Error: Unable to retrieve old version from the base branch."
+              echo "Error: Unable to retrieve old version from the base branch"
               exit 1
             fi
 
