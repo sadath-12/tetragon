@@ -129,7 +129,7 @@ func (cm *ClientMultiplexer) Connect(ctx context.Context, connTimeout time.Durat
 // multiplexes the GetEventsResponses. allowList and denyList can be used to filter what
 // events we care about.
 func (cm *ClientMultiplexer) GetEvents(ctx context.Context, allowList, denyList []*tetragon.Filter) (chan GetEventsResult, error) {
-	c := make(chan GetEventsResult)
+	c := make(chan GetEventsResult) 
 
 	for _, client := range cm.clients {
 		var stream tetragon.FineGuidanceSensors_GetEventsClient

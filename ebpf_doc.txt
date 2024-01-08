@@ -1,0 +1,17 @@
+ebpf:
+
+we first get the system call on which we want to attach our work(function) that needs to be executed on the kernel
+and attach it through kprobe and also take support of kernel function again to retrieve the information about it 
+those info is stored in some file for example the print one stores in  /sys/kernel/debug/tracing/trace_pipe.
+but it becomes very tough when things multiply and scale so we eBPF maps
+
+There are different eBPF maps for different purposes (socket , network ... etc)
+
+ Typical uses
+include the following:
+• User space writing configuration information to be retrieved by an eBPF
+program
+• An eBPF program storing state, for later retrieval by another eBPF program (or a
+future run of the same program)
+• An eBPF program writing results or metrics into a map, for retrieval by the user
+space app that will present results

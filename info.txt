@@ -1,0 +1,64 @@
+understand what different commands folder used for here cmd
+understand what are those vendors 
+understand what are sensors here --> pkg/sensors/sensors.go
+understand other components used and the operator
+be able to track one flow of tracingpolicy
+
+there is ds tetragon what is it ?
+
+
+operator is in ./operator 
+cilium/tetragon will get all cmd/tetra*
+
+what are their roles exactly ?
+./operator  is the usual operator for k8s 
+cilium/tetragon is one container under tetragon pod and it is through that we will do all those operations
+
+when u do functionality related things then tetragon comes into action
+tetra is a tool to extract info from the things running 
+
+what is podinfo for ?? -- maybe some other project is watching it 
+
+
+Daemon process:
+
+Loads/unloads BPF programs.
+Monitors policy changes, writing policies into eBPF Maps. In non-K8s environments, it monitors policy updates in file directories.
+Provides an external gRPC API, listening on 127.0.0.1:54321. CLI execution is essentially through this API interacting with the Daemon.
+
+accomplished through Tracing Policies. TracingPolicy, a custom resource of Tetragon, allows users to trace arbitrary events in the kernel and define actions to be taken for matched events.
+
+Policies consist of hook points (supporting kprobes, tracepoint, and uprobes) and selectors for kernel filtering and specifying actions.
+
+what is those ebf maps 
+
+understand where where different communications taking place , where is the role of cilium , through grpc whats its done 
+understand what are the different pkg/ and how they do
+
+there r some events that sends and get recieved --> from where does it happen ?
+the sensors add the events to the event channel monitoring via cilium and through different clients those events are read and from the events channel
+
+understand tetracli code properly
+
+February 22 - March 18 - GSOC
+mid-January - LFX
+
+how different clients are configured
+understand that processmanager
+
+
+understand these compos role in cilium -- 	ciliumClient,
+			v1.NewEndpoints(),
+			ipcache.New(),
+			fqdncache.New(),
+			servicecache.New(),
+
+decode their structs
+that events who is consuming just check from the eventschannel
+
+handleMonitorSocket( consumes monitor events via ciliumState --> see the role of ciliumState here and how after monitoring it stores those events
+
+
+pkg/watcher/crd/watcher.go will watch the crds and trigger
+
+how is tetragonExecute executed ?

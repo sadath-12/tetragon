@@ -1,4 +1,5 @@
 name: Check CRD Version Update
+
 on:
   pull_request:
     paths:
@@ -12,17 +13,13 @@ jobs:
         with:
           fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
 
-      - name: Get changed files
+      - name: Get all changed files
         id: changed-files
-        run: |
-          if ${{ github.event_name == 'pull_request' }}; then
-              echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> $GITHUB_ENV
-          else
-              echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> $GITHUB_ENV
-          fi
+        uses: jitterbit/get-changed-files@v1
 
       - name: Check for CRD changes and version update
         run: |
+
           if echo "${{ env.changed_files }}" | grep -q 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'; then
             old_version=$(git show ${{ github.event.pull_request.base.sha }}:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
             echo "old_version=$old_version"
@@ -31,18 +28,29 @@ jobs:
             if [ -z "$old_version" ]; then
               echo "Error: Unable to retrieve old version from the base branch"
               exit 1
+
             fi
 
-            echo "old_version=$old_version"
-            echo "new_version=$new_version"
-            echo "old_version=$old_version"
-
-            if [ "$old_version" == "$new_version" ]; then
-              echo "Error: CRD version not updated! Please update the CustomResourceDefinitionSchemaVersion in register.go"
-              exit 1
+            if echo "$changed_file" | grep -q 'pkg/k8s/apis/cilium.io/v1alpha1/register.go'; then
+              old_version=$(git show ${{ github.event.pull_request.base.sha }}:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
+              new_version=$(grep 'CustomResourceDefinitionSchemaVersion' $changed_file | awk -F'"' '{print $2}')
+              echo "old_version=$old_version"
+              echo "new_version=$new_version"
+              if [ "$old_version" != "$new_version" ]; then
+                version_changed=true
+              fi
             fi
-          else
-            echo "No changes in the CRD files"
+          done
+
+          if [ "$crd_changed" = true ] && [ "$version_changed" = false ]; then
+            echo "CRD changed but version not updated"
+            exit 1
           fi
 
+          if [ "$crd_changed" = false ] && [ "$version_changed" = true ]; then
+            echo "Version updated but CRD not changed"
+            exit 1
+          fi
 
+          echo crd_changed=$crd_changed
+          echo version_changed=$version_changed

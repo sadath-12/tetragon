@@ -47,7 +47,7 @@ func NewFilteredTracingPolicyNamespacedInformer(client versioned.Interface, name
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
-					tweakListOptions(&options)
+					tweakListOptions(&options) 
 				}
 				return client.CiliumV1alpha1().TracingPoliciesNamespaced(namespace).List(context.TODO(), options)
 			},

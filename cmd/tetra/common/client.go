@@ -57,7 +57,7 @@ func connect(ctx context.Context) (*grpc.ClientConn, string, error) {
 				"ServerAddress": ServerAddress,
 			}).Debug("connect to server using address in info file")
 		}
-	}
+	} 
 
 	conn, err := grpc.DialContext(connCtx, ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	return conn, ServerAddress, err

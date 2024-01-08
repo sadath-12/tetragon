@@ -123,7 +123,7 @@ func (s *Server) removeNotifierAndDrain(l *getEventsListener) {
 }
 func (s *Server) GetEvents(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer) error {
 	return s.GetEventsWG(request, server, nil, nil)
-}
+} 
 
 func (s *Server) GetEventsWG(request *tetragon.GetEventsRequest, server tetragon.FineGuidanceSensors_GetEventsServer, closer io.Closer, readyWG *sync.WaitGroup) error {
 	logger.GetLogger().WithFields(logrus.Fields{
