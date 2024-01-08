@@ -27,8 +27,7 @@ jobs:
             fi
 
             if echo "$changed_file" | grep -q 'pkg/k8s/apis/cilium.io/v1alpha1/register.go'; then
-              # Logic to extract and compare version numbers
-              old_version=$(git show ${{ github.event.pull_request.base.sha }}:$changed_file | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
+              old_version=$(git show ${{ github.event.pull_request.base.sha }}:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
               new_version=$(grep 'CustomResourceDefinitionSchemaVersion' $changed_file | awk -F'"' '{print $2}')
               echo "old_version=$old_version"
               echo "new_version=$new_version"
