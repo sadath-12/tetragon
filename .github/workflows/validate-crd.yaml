@@ -47,5 +47,5 @@ jobs:
             exit 1
           fi
 
-          echo crd_changed=$crd_changed
-          echo version_changed=$version_changed
+          echo "crd_changed=$crd_changed"
+          echo "version_changed=$version_changed"
