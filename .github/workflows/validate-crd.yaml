@@ -1,48 +1,42 @@
-name: Check CRD Version Update
+name: Check CRD version update
 
 on:
   pull_request:
     paths:
       - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
+      - 'pkg/k8s/apis/cilium.io/v1alpha1/register.go'
 
 jobs:
   check-version:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
-
-      - name: Get all changed files
-        id: changed-files
-        uses: jitterbit/get-changed-files@v1
-
       - name: Check for CRD changes and version update
         run: |
-          crd_changed=false
-          version_changed=false
-          for changed_file in ${{ steps.changed-files.outputs.all }}; do
-            if echo "$changed_file" | grep -q 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/'; then
-              crd_changed=true
-            fi
+          crd_changed=0
+          version_changed=0
 
-            if echo "$changed_file" | grep -q 'pkg/k8s/apis/cilium.io/v1alpha1/register.go'; then
-              old_version=$(git show ${{ github.event.pull_request.base.sha }}:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
-              new_version=$(grep 'CustomResourceDefinitionSchemaVersion' $changed_file | awk -F'"' '{print $2}')
-              echo "old_version=$old_version"
-              echo "new_version=$new_version"
-              if [ "$old_version" != "$new_version" ]; then
-                version_changed=true
-              fi
-            fi
-          done
+          # Check for CRD changes
+          crd_changes=$(git diff --name-only ${{ github.base_ref }} ${{ github.head_ref }} -- pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml)
+          if [ -n "$crd_changes" ]; then
+            crd_changed=1
+          fi
 
-          if [ "$crd_changed" = true ] && [ "$version_changed" = false ]; then
+          # Check for version variable changes
+          
+          old_version=$(git show ${{ github.event.pull_request.base.sha }}:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
+          new_version=$(git show HEAD:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
+
+          if [ "$old_version" != "$new_version" ]; then
+            version_changed=1
+          fi
+
+          if [ "$crd_changed" -eq 1 ] && [ "$version_changed" -eq 0 ]; then
             echo "CRD changed but version not updated"
             exit 1
           fi
 
-          if [ "$crd_changed" = false ] && [ "$version_changed" = true ]; then
+          if [ "$crd_changed" -eq 0 ] && [ "$version_changed" -eq 1 ]; then
             echo "Version updated but CRD not changed"
             exit 1
           fi
