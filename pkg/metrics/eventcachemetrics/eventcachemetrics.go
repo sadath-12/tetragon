@@ -9,6 +9,10 @@ import (
 )
 
 var (
+	ProcessCacheSize = "process_cache_size"
+)
+
+var (
 	processInfoErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
 		Name:        "event_cache_process_info_errors_total",
@@ -33,6 +37,12 @@ var (
 		Help:        "The total of errors encountered while fetching process exec information from the cache.",
 		ConstLabels: nil,
 	}, []string{"error"})
+	ProcessCacheTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   consts.MetricsNamespace,
+		Name:        "event_cache_process_total",
+		Help:        "The size of the process cache.",
+		ConstLabels: nil,
+	}, []string{"type"})
 )
 
 func InitMetrics(registry *prometheus.Registry) {
@@ -55,4 +65,9 @@ func PodInfoError(eventType string) prometheus.Counter {
 // Get a new handle on an processInfoErrors metric for an eventType
 func EventCacheError(err string) prometheus.Counter {
 	return eventCacheErrorsTotal.WithLabelValues(err)
+}
+
+// Get a new handle on an ProcessCache metric for an entryType
+func ProcessCache(entryType string) prometheus.Counter {
+	return ProcessCacheTotal.WithLabelValues(entryType)
 }

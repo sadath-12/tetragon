@@ -4,7 +4,6 @@
 package metricsconfig
 
 import (
-	"github.com/cilium/tetragon/pkg/eventcache"
 	"github.com/cilium/tetragon/pkg/grpc/tracing"
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
 	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
@@ -20,7 +19,6 @@ import (
 	"github.com/cilium/tetragon/pkg/metrics/syscallmetrics"
 	"github.com/cilium/tetragon/pkg/metrics/watchermetrics"
 	"github.com/cilium/tetragon/pkg/observer"
-	"github.com/cilium/tetragon/pkg/process"
 	"github.com/cilium/tetragon/pkg/version"
 	grpcmetrics "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -46,9 +44,7 @@ func InitAllMetrics(registry *prometheus.Registry) {
 
 	// register BPF collectors
 	registry.MustRegister(mapmetrics.NewBPFCollector(
-		eventcache.NewBPFCollector(),
 		observer.NewBPFCollector(),
-		process.NewBPFCollector(),
 	))
 	registry.MustRegister(eventmetrics.NewBPFCollector())
 

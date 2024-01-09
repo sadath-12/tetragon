@@ -27,18 +27,31 @@ func (t *GoTest) ToString() string {
 	return fmt.Sprintf("%s:%s", t.PackageProg, t.Test)
 }
 
-func fromString(s string) GoTest {
+func fromString(testDir, s string) []GoTest {
+
 	sl := strings.SplitN(s, ":", 2)
-	ret := GoTest{
-		PackageProg: sl[0],
+	prog := sl[0]
+	if len(sl) < 2 {
+		return []GoTest{{PackageProg: prog}}
 	}
-	if len(sl) == 2 {
-		ret.Test = sl[1]
+
+	pattern := sl[1]
+	tests, err := listTests(testDir, prog, pattern)
+	if err != nil {
+		// NB: we failed to list the tests of a package. Just append the prog.
+		return []GoTest{{PackageProg: prog}}
 	}
+
+	ret := []GoTest{}
+	for _, test := range tests {
+		t := GoTest{PackageProg: prog, Test: test}
+		ret = append(ret, t)
+	}
+
 	return ret
 }
 
-func LoadTestsFromFile(fname string) ([]GoTest, error) {
+func LoadTestsFromFile(testDir string, fname string) ([]GoTest, error) {
 	f, err := os.Open(fname)
 	if err != nil {
 		return nil, err
@@ -49,7 +62,10 @@ func LoadTestsFromFile(fname string) ([]GoTest, error) {
 	var ret []GoTest
 	for scanner.Scan() {
 		txt := scanner.Text()
-		ret = append(ret, fromString(txt))
+		if strings.HasPrefix(txt, "#") {
+			continue
+		}
+		ret = append(ret, fromString(testDir, txt)...)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -85,7 +101,7 @@ func ListTests(
 			continue
 		}
 
-		tests, err := listTests(testDir, prog)
+		tests, err := listTests(testDir, prog, ".")
 		if err != nil {
 			// NB: we failed to list the tests of a package. Just append the prog.
 			ret = append(ret, GoTest{PackageProg: prog})
@@ -136,12 +152,19 @@ func listTestProgs(testDir string, blacklist []GoTest) ([]string, error) {
 	return ret, nil
 }
 
-// listTests list the test of a test program by passing "-test.list ." to it.
-func listTests(testDir string, testProg string) ([]string, error) {
+// listTests list the test of a test program by passing "-test.list <pattern>" to it.
+func listTests(testDir string, testProg string, testPattern string) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	// Callers should use ".", but as a sanity check if pattern is empty, we set the pattern to
+	// "."
+	if testPattern == "" {
+		testPattern = "."
+	}
+
 	prog := filepath.Join(testDir, testProg)
-	listCmd := exec.CommandContext(ctx, prog, "-test.list", ".")
+	listCmd := exec.CommandContext(ctx, prog, "-test.list", testPattern)
 	out, err := listCmd.CombinedOutput()
 	if err != nil {
 		return nil, err
