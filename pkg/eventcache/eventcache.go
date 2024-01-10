@@ -128,7 +128,6 @@ func (ec *Cache) handleEvents() {
 		// If the process wasn't found before the Add(), likely because
 		// the execve event was processed after this event, lets look it up
 		// now because it should be available. Otherwise we have a valid
-		// process and lets copy it across.
 		if event.internal == nil {
 			event.internal, err = event.msg.RetryInternal(event.event, event.startTime)
 		}
