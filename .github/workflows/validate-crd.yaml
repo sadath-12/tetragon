@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - 'pkg/k8s/apis/cilium.io/client/crds/v1alpha1/*.yaml'
-      - 'pkg/k8s/apis/cilium.io/v1alpha1/register.go'
+      - 'pkg/k8s/apis/cilium.io/v1alpha1/version.go'
 
 jobs:
   check-version:
@@ -28,8 +28,8 @@ jobs:
 
           # Check for version variable changes
 
-          old_version=$(git show ${{ github.event.pull_request.base.sha }}:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
-          new_version=$(git show HEAD:pkg/k8s/apis/cilium.io/v1alpha1/register.go | grep 'CustomResourceDefinitionSchemaVersion' | awk -F'"' '{print $2}')
+          old_version=$(sed -n 's/^const CustomResourceDefinitionSchemaVersion = "\(.*\)".*/\1/p' pkg/k8s/apis/cilium.io/v1alpha1/version.go)
+          new_version=$(sed -n 's/^const CustomResourceDefinitionSchemaVersion = "\(.*\)".*/\1/p' pkg/k8s/apis/cilium.io/v1alpha1/version.go)
 
           echo "old_version=$old_version"
           echo "new_version=$new_version"
