@@ -14,9 +14,7 @@ const (
 	PodInfo     = "pod_info"
 )
 
-var (
-	ProcessCacheSize = "process_cache_size"
-)
+var ProcessCacheSize = "process_cache_size"
 
 var (
 	processInfoErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
