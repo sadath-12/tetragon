@@ -14,6 +14,8 @@ const (
 	PodInfo     = "pod_info"
 )
 
+var ProcessCacheSize = "process_cache_size"
+
 var (
 	processInfoErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace:   consts.MetricsNamespace,
@@ -39,6 +41,12 @@ var (
 		Help:        "The total of errors encountered while fetching process exec information from the cache.",
 		ConstLabels: nil,
 	}, []string{"error"})
+	ProcessCacheTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace:   consts.MetricsNamespace,
+		Name:        "event_cache_size",
+		Help:        "The size of the process cache.",
+		ConstLabels: nil,
+	})
 	eventCacheRetriesTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: consts.MetricsNamespace,
 		Name:      "event_cache_retries_total",
@@ -57,26 +65,27 @@ func InitMetrics(registry *prometheus.Registry) {
 	registry.MustRegister(podInfoErrors)
 	registry.MustRegister(EventCacheCount)
 	registry.MustRegister(eventCacheErrorsTotal)
+	registry.MustRegister(ProcessCacheTotal)
 	registry.MustRegister(eventCacheRetriesTotal)
 	registry.MustRegister(parentInfoErrors)
 }
 
-// Get a new handle on an processInfoErrors metric for an eventType
+// Get a new handle on a processInfoErrors metric for an eventType
 func ProcessInfoError(eventType string) prometheus.Counter {
 	return processInfoErrors.WithLabelValues(eventType)
 }
 
-// Get a new handle on an processInfoErrors metric for an eventType
+// Get a new handle on a podInfoErrors metric for an eventType
 func PodInfoError(eventType string) prometheus.Counter {
 	return podInfoErrors.WithLabelValues(eventType)
 }
 
-// Get a new handle on an processInfoErrors metric for an eventType
+// Get a new handle on an eventCacheErrorsTotal metric for an error
 func EventCacheError(err string) prometheus.Counter {
 	return eventCacheErrorsTotal.WithLabelValues(err)
 }
 
-// Get a new handle on the eventCacheRetriesTotal metric for an entryType
+// Get a new handle on an eventCacheRetriesTotal metric for an entryType
 func EventCacheRetries(entryType string) prometheus.Counter {
 	return eventCacheRetriesTotal.WithLabelValues(entryType)
 }

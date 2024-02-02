@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 
 	"github.com/cilium/tetragon/pkg/metrics/errormetrics"
+	"github.com/cilium/tetragon/pkg/metrics/eventcachemetrics"
 	hubble "github.com/cilium/tetragon/pkg/oldhubble/cilium"
 	"github.com/sirupsen/logrus"
 
@@ -61,9 +62,7 @@ var (
 	k8s         watcher.K8sResourceWatcher
 )
 
-var (
-	ErrProcessInfoMissing = errors.New("failed process info missing")
-)
+var ErrProcessInfoMissing = errors.New("failed process info missing")
 
 func InitCache(w watcher.K8sResourceWatcher, size int) error {
 	var err error
@@ -88,6 +87,7 @@ func InitCache(w watcher.K8sResourceWatcher, size int) error {
 func FreeCache() {
 	procCache.Purge()
 	procCache = nil
+	eventcachemetrics.ProcessCacheTotal.Set(0)
 }
 
 // GetProcessCopy() duplicates tetragon.Process and returns it
@@ -377,7 +377,8 @@ func initProcessInternalExec(
 // initProcessInternalClone() initialize and returns ProcessInternal from
 // a clone event
 func initProcessInternalClone(event *tetragonAPI.MsgCloneEvent,
-	parent *ProcessInternal, parentExecId string) (*ProcessInternal, error) {
+	parent *ProcessInternal, parentExecId string,
+) (*ProcessInternal, error) {
 	pi := parent.cloneInternalProcessCopy()
 	if pi.process == nil {
 		err := fmt.Errorf("failed to clone parent process from cache")
@@ -462,6 +463,7 @@ func AddExecEvent(event *tetragonAPI.MsgExecveEventUnix) *ProcessInternal {
 	}
 
 	procCache.add(proc)
+	eventcachemetrics.ProcessCacheTotal.Inc()
 	return proc
 }
 
@@ -485,6 +487,7 @@ func AddCloneEvent(event *tetragonAPI.MsgCloneEvent) error {
 
 	parent.RefInc()
 	procCache.add(proc)
+	eventcachemetrics.ProcessCacheTotal.Inc()
 	return nil
 }
 
